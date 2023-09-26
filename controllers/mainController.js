@@ -58,14 +58,17 @@ module.exports = {
         }
         const user = {
             username,
-            id: userExists._id,
+            id: userExists._id
         }
         const token = jwt.sign(user, process.env.JWT_SECRET);
         const myUser = {
             username,
             id: userExists._id,
-            money: userExists.money
+            image: userExists.image,
+            money: userExists.money,
+            inventory: userExists.inventory
         }
+        console.log(myUser);
         resSend(res, false, {user: myUser, token}, 'Logged in successfully');
     },
     getUser: async (req, res) => {
@@ -74,7 +77,9 @@ module.exports = {
         const myUser = {
             username: userLegit.username,
             id: userLegit._id,
-            money: userLegit.money
+            image: userLegit.image,
+            money: userLegit.money,
+            inventory: userLegit.inventory
         }
         resSend(res, false, myUser, '');
     },

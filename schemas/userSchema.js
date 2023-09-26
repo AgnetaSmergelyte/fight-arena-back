@@ -22,7 +22,11 @@ const userSchema = new Schema({
     inventory: {
         type: Array,
         required: true,
-        default: []
+        default: [
+            {type: 'weapon', grade: 'C', power: 1, gold: 1, effectSlots: [], image: 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg'},
+            {type: 'armor', grade: 'C', power: 10, effectSlots: [], image:'https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate_dungeonplate_c_04.jpg'},
+            {type: 'potion', power: 30, image:'https://wow.zamimg.com/images/wow/icons/large/inv_potion_51.jpg'}
+        ]
     }
 
 });
