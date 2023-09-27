@@ -74,6 +74,7 @@ module.exports = {
     getUser: async (req, res) => {
         const user = req.user;
         const userLegit = await userDb.findOne({_id: user.id});
+        if (!userLegit) return resSend(res, true, null, 'Bad token');
         const myUser = {
             username: userLegit.username,
             id: userLegit._id,

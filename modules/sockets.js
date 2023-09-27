@@ -40,6 +40,10 @@ function rndInterval(num1, num2) {
     return Math.floor(Math.random() * (num2 - num1 + 1) + num1);
 }
 
+function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2)
+}
+
 function generateGradeAEffects() {
     const newEffects = [];
     if (rnd(2) === 1) newEffects.push({name: effects[0], chance: rndInterval(1, 50)});
@@ -72,7 +76,7 @@ async function takeAwayMyMoney(username) {
                 {username},
                 {$set: {money}},
             )
-            return true;
+            return money;
         }
     }
 }
@@ -85,12 +89,29 @@ async function addNewItem(username, item) {
             {username},
             {$set: {inventory}},
         )
-    }
+        return inventory;
+    } else return false;
+}
+
+async function removeItem(username, item) {
+    const userExists = await userDb.findOne({username});
+
+    if (userExists) {
+        console.log('item:', item)
+        const newInventory = userExists.inventory.filter(x => x.id !== item.id)
+        console.log(newInventory)
+        await userDb.findOneAndUpdate(
+            {username},
+            {$set: {inventory: newInventory}},
+        )
+        return newInventory;
+    } else return false;
 }
 
 function generateItems() {
     //generate weapon:
     const weapon = {
+        id: uid(),
         type: 'weapon',
         image: weapons[rnd(weapons.length)],
         grade: grades[rnd(grades.length)]
@@ -113,6 +134,7 @@ function generateItems() {
 
     //generate armor:
     const armor = {
+        id: uid(),
         type: 'armor',
         image: armors[rnd(weapons.length)],
         grade: grades[rnd(grades.length)]
@@ -131,6 +153,7 @@ function generateItems() {
     }
     //generate potion
     const potion = {
+        id: uid(),
         type: 'potion',
         image: 'https://wow.zamimg.com/images/wow/icons/large/inv_potion_51.jpg',
         power: rndInterval(1, 100)
@@ -167,20 +190,82 @@ module.exports = (server) => {
             io.to(socket.id).emit('userList', onlineUsers);
         })
 
-        socket.on('generateItems', () => {
+        socket.on('generateItems', async() => {
             const myUser = onlineUsers.find(x => x.socketId === socket.id);
             if (myUser) {
-                const updateDB = takeAwayMyMoney(myUser.username);
-                if (updateDB) {
+                const updatedMoney = await takeAwayMyMoney(myUser.username);
+                if (updatedMoney) {
                     const items = generateItems();
-                    io.to(socket.id).emit('items', items);
+                    io.to(socket.id).emit('items', {items, money: updatedMoney});
                 }
             }
         })
 
-        socket.on('takeItem', item => {
+        socket.on('takeItem', async (item) => {
             const myUser = onlineUsers.find(x => x.socketId === socket.id);
-            if (myUser) addNewItem(myUser.username, item);
+            if (myUser) {
+                const inventory = await addNewItem(myUser.username, item);
+                if (inventory) io.to(socket.id).emit('inventory', inventory);
+            }
+        })
+
+        socket.on('removeItem', async (item)=> {
+            const myUser = onlineUsers.find(x => x.socketId === socket.id);
+            if (myUser) {
+                const inventory = await removeItem(myUser.username, item);
+                if (inventory) io.to(socket.id).emit('inventory', inventory);
+            }
+        })
+
+        socket.on("requestToPlay", val => {
+            const requestFrom = onlineUsers.find(x => x.socketId === socket.id);
+            if (requestFrom && val.inventory.length === 3) {
+                const player1 = {
+                    socketId: requestFrom.socketId,
+                    username: requestFrom.username,
+                    image: requestFrom.image,
+                    weapon: val.inventory[0],
+                    armor: val.inventory[1],
+                    potion: val.inventory[2],
+                    hp: 100
+                }
+                if (val.requestTo) io.to(val.requestTo).emit('request', player1);
+            }
+        })
+
+        socket.on("cancelRequest", answerTo => {
+            const sender = onlineUsers.find(x => x.socketId === socket.id);
+            const answer = "no";
+            io.to(answerTo).emit('answer', {sender: sender.username, answer});
+        })
+
+        socket.on("acceptRequest", val => {
+            //val.inventory ir val.player1
+            const answerFrom = onlineUsers.find(x => x.socketId === socket.id);
+            if (answerFrom && val.player1 && val.inventory.length === 3) {
+                const player2 = {
+                    socketId: answerFrom.socketId,
+                    username: answerFrom.username,
+                    image: answerFrom.image,
+                    weapon: val.inventory[0],
+                    armor: val.inventory[1],
+                    potion: val.inventory[2],
+                    hp: 100
+                }
+                const roomName = uid();
+                const answer = "yes";
+                io.to(val.player1.socketId).emit('answer', {answer});
+                io.to(val.player1.socketId).emit('gotTheRoom', {roomName, player1: val.player1, player2});
+                io.to(player2.socketId).emit('gotTheRoom', {roomName, player1: val.player1, player2});
+            }
+        })
+
+        socket.on("join", roomName => {
+            socket.join(roomName);
+        })
+
+        socket.on("hit", (roomName) => {
+            io.to(roomName).emit("details", "hit msg");
         })
 
         socket.on('logout', () => {

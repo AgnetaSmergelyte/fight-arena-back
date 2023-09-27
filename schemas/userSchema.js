@@ -17,18 +17,23 @@ const userSchema = new Schema({
     money: {
         type: Number,
         required: true,
-        default: 100
+        default: 10000
     },
     inventory: {
         type: Array,
         required: true,
         default: [
-            {type: 'weapon', grade: 'C', power: 1, gold: 1, effectSlots: [], image: 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg'},
-            {type: 'armor', grade: 'C', power: 10, effectSlots: [], image:'https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate_dungeonplate_c_04.jpg'},
-            {type: 'potion', power: 30, image:'https://wow.zamimg.com/images/wow/icons/large/inv_potion_51.jpg'}
+            {
+                id: '000',
+                type: 'weapon',
+                grade: 'C',
+                power: 1,
+                gold: 1,
+                effectSlots: [],
+                image: 'https://wow.zamimg.com/images/wow/icons/large/inv_sword_04.jpg'
+            },
         ]
     }
-
 });
 
 const user = mongoose.model("arena-users", userSchema);
