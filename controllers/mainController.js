@@ -68,7 +68,6 @@ module.exports = {
             money: userExists.money,
             inventory: userExists.inventory
         }
-        console.log(myUser);
         resSend(res, false, {user: myUser, token}, 'Logged in successfully');
     },
     getUser: async (req, res) => {
@@ -88,5 +87,4 @@ module.exports = {
         const images = await findAvailableImages();
         resSend(res, false, images, '');
     }
-
 }

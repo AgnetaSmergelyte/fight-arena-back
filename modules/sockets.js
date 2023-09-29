@@ -13,7 +13,6 @@ const weapons = [
     "https://wow.zamimg.com/images/wow/icons/large/inv_sword_1h_broker2boss_d_01_green.jpg",
     "https://wow.zamimg.com/images/wow/icons/large/inv_sword_22.jpg"
 ];
-
 const armors = [
     "https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate_dragonpvp_d_01.jpg",
     "https://wow.zamimg.com/images/wow/icons/large/inv_chest_leather_08.jpg",
@@ -26,26 +25,21 @@ const armors = [
     "https://wow.zamimg.com/images/wow/icons/large/inv_chest_chain_07.jpg",
     "https://wow.zamimg.com/images/wow/icons/large/inv_chest_plate08.jpg"
 ];
-
 const grades = ['A', 'B', 'C'];
 const effects = ['Critical chance', 'Dodge chance', 'Life steal chance'];
-
 let rooms = [];
 
 function rnd(num) {
     //random integer from 0 to (num-1)
     return Math.floor(Math.random() * num);
 }
-
 function rndInterval(num1, num2) {
     //random integer from num1 to num2
     return Math.floor(Math.random() * (num2 - num1 + 1) + num1);
 }
-
 function uid() {
     return Date.now().toString(36) + Math.random().toString(36).substring(2)
 }
-
 function generateGradeAEffects() {
     const newEffects = [];
     if (rnd(2) === 1) newEffects.push({name: effects[0], chance: rndInterval(1, 50)});
@@ -53,7 +47,6 @@ function generateGradeAEffects() {
     if (rnd(2) === 1) newEffects.push({name: effects[2], chance: rndInterval(1, 50)});
     return newEffects;
 }
-
 function generateGradeBEffects() {
     const newEffects = [];
     if (rnd(2) === 1) {
@@ -66,7 +59,6 @@ function generateGradeBEffects() {
     }
     return newEffects;
 }
-
 async function takeAwayMyMoney(username) {
     const userExists = await userDb.findOne({username});
     if (!userExists) {
@@ -82,7 +74,6 @@ async function takeAwayMyMoney(username) {
         }
     }
 }
-
 async function addMoney(username, winnings) {
     const userExists = await userDb.findOne({username});
     if (!userExists) {
@@ -96,7 +87,6 @@ async function addMoney(username, winnings) {
         return money;
     }
 }
-
 async function addNewItem(username, item) {
     const userExists = await userDb.findOne({username});
     if (userExists) {
@@ -108,7 +98,6 @@ async function addNewItem(username, item) {
         return inventory;
     } else return false;
 }
-
 async function removeItem(username, item) {
     const userExists = await userDb.findOne({username});
     if (userExists) {
@@ -120,7 +109,6 @@ async function removeItem(username, item) {
         return newInventory;
     } else return false;
 }
-
 function generateItems() {
     //generate weapon:
     const weapon = {
@@ -131,20 +119,19 @@ function generateItems() {
     }
     if (weapon.grade === 'A') {
         weapon.power = rndInterval(6, 30);
-        weapon.gold = rnd(11);
+        weapon.gold = rndInterval(1, 10);
         weapon.effectSlots = generateGradeAEffects();
     }
     if (weapon.grade === 'B') {
         weapon.power = rndInterval(3, 20);
-        weapon.gold = rnd(7);
+        weapon.gold = rndInterval(1, 6);
         weapon.effectSlots = generateGradeBEffects();
     }
     if (weapon.grade === 'C') {
         weapon.power = rndInterval(1, 5);
-        weapon.gold = rnd(3);
+        weapon.gold = rndInterval(1, 3);
         weapon.effectSlots = [];
     }
-
     //generate armor:
     const armor = {
         id: uid(),
@@ -171,10 +158,8 @@ function generateItems() {
         image: 'https://wow.zamimg.com/images/wow/icons/large/inv_potion_51.jpg',
         power: rndInterval(1, 100)
     }
-
     return [weapon, armor, potion]
 }
-
 function hit(attacker, victim) {
     //check if dodges
     let dodgeChance = 0;
@@ -186,10 +171,8 @@ function hit(attacker, victim) {
     }
     //generate rnd number from 1 to 100 and if not bigger than dodge chance, then dodged
     if (rndInterval(1, 100) <= dodgeChance) return {attacker, victim}
-
     //else (no dodge)
     let damage = rndInterval(1, attacker.weapon.power);
-
     //check critical:
     let criticalChance = 0;
     const criticalFromWeapon = attacker.weapon.effectSlots.find(x => x.name === effects[0]);
@@ -199,7 +182,6 @@ function hit(attacker, victim) {
         if (criticalFromArmor) criticalChance += criticalFromArmor.chance;
     }
     if (rndInterval(1, 100) <= criticalChance) damage *= 2;
-
     //check live steal
     let liveStealChance = 0;
     const liveStealFromWeapon = attacker.weapon.effectSlots.find(x => x.name === effects[2]);
@@ -212,20 +194,17 @@ function hit(attacker, victim) {
         victim.hp -= 1;
         if (attacker.hp < 100) attacker.hp += 1;
     }
-
     //defence
     if (victim.armor) {
         const percentsBlocked = rnd(victim.armor.power + 1);
         damage = Math.round((damage * (100 - percentsBlocked)) / 100);
     }
-
     //gold
     const gold = rnd(attacker.weapon.gold + 1);
     attacker.gold += gold;
 
     victim.hp -= damage;
     if (victim.hp < 0) victim.hp = 0;
-
     return {attacker, victim}
 }
 
@@ -261,7 +240,7 @@ module.exports = (server) => {
             const myUser = onlineUsers.find(x => x.socketId === socket.id);
             if (myUser) {
                 const updatedMoney = await takeAwayMyMoney(myUser.username);
-                if (updatedMoney) {
+                if (updatedMoney || updatedMoney === 0) {
                     const items = generateItems();
                     io.to(socket.id).emit('items', {items, money: updatedMoney});
                 }
@@ -303,8 +282,8 @@ module.exports = (server) => {
 
         socket.on("cancelRequest", answerTo => {
             const sender = onlineUsers.find(x => x.socketId === socket.id);
-            const answer = "no";
-            io.to(answerTo).emit('answer', {sender: sender.username, answer});
+            const answer = sender.username + " denied your request";
+            io.to(answerTo).emit('answer', answer);
         })
 
         function handleLagers(beforeCount, roomName) {
@@ -325,7 +304,18 @@ module.exports = (server) => {
         }
 
         socket.on("acceptRequest", val => {
-            //val.inventory ir val.player1
+            //val = {inventory, player1}
+            //if user who requested disconnected or is already in another fight
+            const requester = onlineUsers.find(x => x.socketId === val.player1.socketId);
+            if (!requester) {
+                const answer = "User already disconnected";
+                io.to(socket.id).emit('answer', answer);
+                return;
+            } else if (rooms.find(x => x.player1.socketId === requester.socketId || x.player2.socketId  === requester.socketId)) {
+                const answer = "User is already in another fight";
+                io.to(socket.id).emit('answer', answer);
+                return;
+            }
             const answerFrom = onlineUsers.find(x => x.socketId === socket.id);
             if (answerFrom && val.player1 && val.inventory.length === 3) {
                 const player2 = {
@@ -339,12 +329,9 @@ module.exports = (server) => {
                     gold: 0
                 }
                 const roomName = uid();
-                const answer = "yes";
                 const roomInfo = {roomName, player1: val.player1, player2, turn: player2.username, gameOver: false, count: 0};
-                io.to(val.player1.socketId).emit('answer', {answer});
                 io.to(val.player1.socketId).emit('gotTheRoom', roomInfo);
                 io.to(player2.socketId).emit('gotTheRoom', roomInfo);
-
                 rooms.push(roomInfo);
                 handleLagers(0, roomName);
             }
@@ -360,7 +347,6 @@ module.exports = (server) => {
             if (!roomData) return;
             //check turn
             if (onlineUsers.find(x => x.socketId === socket.id).username !== roomData.turn) return;
-
             roomData.count++;
             if (socket.id === roomData.player1.socketId) {
                 const result = hit(roomData.player1, roomData.player2);
@@ -387,7 +373,6 @@ module.exports = (server) => {
             }
             io.to(roomData.roomName).emit("attackResults", roomData);
             if (roomData.gameOver) rooms = rooms.filter(x => x.roomName !== roomData.roomName);
-
             const fixCount = roomData.count;
             handleLagers(fixCount, roomName);
         });
@@ -435,7 +420,6 @@ module.exports = (server) => {
         socket.on('disconnect', () => {
             onlineUsers = onlineUsers.filter(x => x.socketId !== socket.id);
             rooms = rooms.filter(x => x.player1.socketId !== socket.id && x.player2.socketId !== socket.id);
-            console.log(rooms);
             io.emit('userList', onlineUsers);
             console.log('A user disconnected');
         });

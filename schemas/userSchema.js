@@ -17,7 +17,7 @@ const userSchema = new Schema({
     money: {
         type: Number,
         required: true,
-        default: 10000
+        default: 300
     },
     inventory: {
         type: Array,
