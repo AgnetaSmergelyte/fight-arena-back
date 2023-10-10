@@ -217,18 +217,9 @@ module.exports = (server) => {
     let onlineUsers = [];
 
     io.on('connection', (socket) => {
-        console.log('a user connected', socket.id);
-
         socket.on('logged', user => {
             const newUser = {...user, socketId: socket.id};
-            if (!onlineUsers.find(x => x.socketId === socket.id)) {
-                const index = onlineUsers.indexOf(newUser.username)
-                if (index !== -1) {
-                    onlineUsers[index].socketId = socket.id;
-                } else {
-                    onlineUsers.push(newUser);
-                }
-            }
+            onlineUsers.push(newUser);
             io.emit('userList', onlineUsers);
         })
 
@@ -421,7 +412,6 @@ module.exports = (server) => {
             onlineUsers = onlineUsers.filter(x => x.socketId !== socket.id);
             rooms = rooms.filter(x => x.player1.socketId !== socket.id && x.player2.socketId !== socket.id);
             io.emit('userList', onlineUsers);
-            console.log('A user disconnected');
         });
     });
 }
